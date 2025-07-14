@@ -1,0 +1,129 @@
+========================================== MODEL PREAPARING //// SAVING CROPPED IMAGES(fixed no given by you)=======================
+================== FACE RECOGNITION CODE =================
+
+
+## CHANGE THE PATH ACCORDING TO YOUR CONVENINCE
+
+############# DETECTOR 
+import cv2
+import numpy as np    
+faceCascade = cv2.CascadeClassifier('D:\\recent\\open cv\\softs and docs\\misc\\haarcascade_frontalface_default.xml')
+#username= input()
+# change id no while adding a new face
+id=3
+def main( ):
+    cap=cv2.VideoCapture(0)
+    ret , img = cap.read()
+    outpath = "D:\\recent\\open cv\\softs and docs\\output\\"
+    t=1
+    while ret :
+        ret , img = cap.read()
+        img = cv2.cvtColor( img , cv2.COLOR_BGR2GRAY )
+        #img = cv2.adaptiveThreshold( grayscaled , 255 ,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 115 ,1 )
+        features = faceCascade.detectMultiScale(img, 1.1, 10 )
+        coords = []
+        for (x, y, w, h) in features:
+            cv2.rectangle(img, (x,y), (x+w, y+h), (0,255,0), 2)
+            coords = [x, y, w, h]
+            img=img[ coords[1] : coords[1]+coords[3] , coords[0] : coords[0]+coords[2] ]  
+        if len(coords)>0:
+            cv2.imwrite(outpath+"user."+str(id)+"."+str(t)+".jpg" , img)
+            t=t+1
+            cv2.imshow( "image2" , img )
+		# 
+        if cv2.waitKey(1)==32 or t>50:
+            break
+    cap.release()
+    cv2.destroyAllWindows() 
+if __name__ == "__main__":
+    main()
+	
+	
+
+	
+# 2. ========================TRAINING THE MODEL CODE========================
+
+
+############ trainer
+import os
+import cv2
+import numpy as np
+from PIL import Image
+recognizer = cv2.face.LBPHFaceRecognizer_create()
+path = "D:\\recent\\open cv\\softs and docs\\output\\"
+def getimagewithid(path):
+    # joining all entities(images in this case) and getting path of every image
+    imagepaths = [os.path.join(path,f)  for f in os.listdir(path) ]
+    #print(imagepaths)
+    faces = []
+    ids = []
+    for imagepath in imagepaths:
+        #converting image to grayscale
+        faceimg = Image.open(imagepath).convert('L')
+        # converting faceimage to np-array
+        facenp = np.array(faceimg , 'uint8')
+        # splitting the directory(path) and getting userid
+        Id =  int(os.path.split(imagepath)[-1].split('.')[1] )
+        print(Id)
+        # adding np-image to list
+        faces.append(facenp)
+        # adding image-id to list
+        ids.append(Id)
+        cv2.imshow("training", facenp)
+        cv2.waitKey(10)
+    return ids , faces
+def main():
+    ids,faces = getimagewithid(path)
+    # training the data 
+    recognizer.train(faces,np.array(ids))
+    # saving the trainsd data
+    recognizer.save("D:\\recent\\open cv\\softs and docs\\trained\\training.yml" )
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()
+
+	
+	
+	
+	
+#======================= RECOGNITION CODE ( JUST RUN IT AFTER ABOVE EXECUTION)================
+
+
+#########   recogniser
+import cv2
+import numpy as np    
+facedetect = cv2.CascadeClassifier('D:\\recent\\open cv\\softs and docs\\misc\\haarcascade_frontalface_default.xml')
+rec = cv2.face.LBPHFaceRecognizer_create()
+rec.read("D:\\recent\\open cv\\softs and docs\\trained\\training.yml")
+
+
+# change id no while adding a new face
+id=0
+
+def main( ):
+    cap=cv2.VideoCapture(0)
+    ret , img = cap.read() 
+    while True :
+        ret , img = cap.read()
+        img = cv2.cvtColor( img , cv2.COLOR_BGR2GRAY )
+        #img = cv2.adaptiveThreshold( img , 255 ,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 115 ,1 )
+        faces = facedetect.detectMultiScale(img , 1.1, 10 )
+        for (x, y, w, h) in faces:
+            cv2.rectangle(img, (x,y), (x+w, y+h), (0,255,0), 2)
+            id , conf = rec.predict(img[y:y+h , x:x+w ])
+            print(id)
+            if id ==1:
+                id = "anmol"
+            elif id ==2:
+                id ="modi"
+            else:
+                id = "obama"
+            cv2.putText(img, str(id), (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2 , (255,0,0),3)
+        cv2.imshow( "image2" , img )
+        if cv2.waitKey(1)==32:
+            cap.release()
+            break
+    cv2.destroyAllWindows() 
+if __name__ == "__main__":
+    main()
