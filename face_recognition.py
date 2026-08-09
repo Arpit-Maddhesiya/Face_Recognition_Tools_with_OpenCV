@@ -1,5 +1,6 @@
 import os
 import cv2
+import json
 import numpy as np
 from PIL import Image
 
@@ -13,11 +14,40 @@ CASCADE_PATH = os.path.join(
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 TRAINED_DIR = os.path.join(BASE_DIR, "trained")
 MODEL_PATH = os.path.join(TRAINED_DIR, "training.yml")
+NAMES_PATH = os.path.join(BASE_DIR, "names.json")
 
 face_cascade = cv2.CascadeClassifier(CASCADE_PATH)
 
+def save_person_name(person_id, name):
+    names = {}
+
+    if os.path.exists(NAMES_PATH):
+        try:
+            with open(NAMES_PATH, "r") as file:
+                names = json.load(file)
+
+            if not isinstance(names, dict):
+                names = {}
+
+        except (json.JSONDecodeError, OSError):
+            names = {}
+
+    names[str(person_id)] = name
+
+    with open(NAMES_PATH, "w") as file:
+        json.dump(names, file, indent=4)
+
+
+def load_person_names():
+    if not os.path.exists(NAMES_PATH):
+        return {}
+
+    with open(NAMES_PATH, "r") as file:
+        return json.load(file)
+
 
 def add_person():
+    
     person_id = input("Enter Person ID: ").strip()
 
     if not person_id.isdigit() or int(person_id) <= 0:
@@ -25,6 +55,16 @@ def add_person():
         return
 
     person_id = int(person_id)
+
+    name = input("Enter Person Name: ").strip()
+
+    if not name:
+        print("Name cannot be empty.")
+        return
+
+    save_person_name(person_id, name)
+
+    print(f"Registered: {name} (ID {person_id})")
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -186,6 +226,7 @@ def recognize_person():
 
     try:
         recognizer.read(MODEL_PATH)
+        names = load_person_names()
     except Exception as error:
         print(f"Could not load trained model: {error}")
         return
@@ -226,7 +267,7 @@ def recognize_person():
             # LBPH confidence is actually a distance.
             # Lower value means a better match.
             if confidence < 70:
-                name = f"Person {person_id}"
+                name = names.get(str(person_id), f"Person {person_id}")
                 label = f"{name} ({confidence:.1f})"
             else:
                 label = f"Unknown ({confidence:.1f})"

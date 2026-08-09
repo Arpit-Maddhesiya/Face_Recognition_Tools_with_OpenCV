@@ -1,2 +1,7 @@
+@"
 output/
 trained/
+names.json
+__pycache__/
+*.pyc
+"@ | Set-Content .gitignore
