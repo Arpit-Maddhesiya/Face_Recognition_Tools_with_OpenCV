@@ -8,59 +8,94 @@ CASCADE_PATH = os.path.join(
     "haarcascade_frontalface_default.xml"
 )
 
-cascade = cv2.CascadeClassifier(CASCADE_PATH)
+OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 
-if cascade.empty():
-    raise RuntimeError("Failed to load Haar Cascade.")
+face_cascade = cv2.CascadeClassifier(CASCADE_PATH)
 
-cap = cv2.VideoCapture(0)
 
-if not cap.isOpened():
-    raise RuntimeError("Could not open webcam.")
+def add_person():
+    person_id = input("Enter Person ID: ").strip()
 
-print("Camera started.")
-print("Look at the camera.")
-print("Press SPACE to exit.")
+    if not person_id.isdigit() or int(person_id) <= 0:
+        print("Invalid ID.")
+        return
 
-while True:
-    ret, frame = cap.read()
+    person_id = int(person_id)
 
-    if not ret:
-        print("Failed to read camera frame.")
-        break
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    cap = cv2.VideoCapture(0)
 
-    faces = cascade.detectMultiScale(
-        gray,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(80, 80)
-    )
+    if not cap.isOpened():
+        print("Could not open webcam.")
+        return
 
-    for (x, y, w, h) in faces:
-        cv2.rectangle(
-            frame,
-            (x, y),
-            (x + w, y + h),
-            (0, 255, 0),
-            2
+    print("\nCamera started.")
+    print("Look at the camera.")
+    print("Press SPACE to cancel.")
+
+    count = 0
+
+    while count < 50:
+        ret, frame = cap.read()
+
+        if not ret:
+            print("Failed to read camera frame.")
+            break
+
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        faces = face_cascade.detectMultiScale(
+            gray,
+            scaleFactor=1.1,
+            minNeighbors=5,
+            minSize=(80, 80)
         )
 
-        cv2.putText(
-            frame,
-            "Face Detected",
-            (x, y - 10),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.8,
-            (0, 255, 0),
-            2
-        )
+        for (x, y, w, h) in faces:
 
-    cv2.imshow("Face Detection Test", frame)
+            face = gray[y:y + h, x:x + w]
 
-    if cv2.waitKey(1) & 0xFF == 32:
-        break
+            count += 1
 
-cap.release()
-cv2.destroyAllWindows()
+            filename = f"user.{person_id}.{count}.jpg"
+            filepath = os.path.join(OUTPUT_DIR, filename)
+
+            cv2.imwrite(filepath, face)
+
+            cv2.rectangle(
+                frame,
+                (x, y),
+                (x + w, y + h),
+                (0, 255, 0),
+                2
+            )
+
+            cv2.putText(
+                frame,
+                f"Images: {count}/50",
+                (x, y - 10),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (0, 255, 0),
+                2
+            )
+
+            break
+
+        cv2.imshow("Add Person", frame)
+
+        if cv2.waitKey(1) & 0xFF == 32:
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+    print(f"\nCaptured {count} face images.")
+
+    if count > 0:
+        print(f"Images saved in: {OUTPUT_DIR}")
+
+
+if __name__ == "__main__":
+    add_person()
