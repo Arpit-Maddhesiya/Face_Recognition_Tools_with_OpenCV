@@ -1,4 +1,5 @@
-# 👤 Face Recognition System using OpenCV & LBPH
+
+# <div align="center">👤 Face Recognition System using OpenCV & LBPH
 
 A real-time **Face Detection and Recognition System** built using **Python, OpenCV, Haar Cascade Classifier, and LBPH (Local Binary Patterns Histograms)**.
 
@@ -16,6 +17,8 @@ This project implements a complete face-recognition pipeline consisting of three
 
 The project uses **Haar Cascade** for face detection and **LBPH** for face recognition.
 
+The system also maintains a `names.json` file that maps each person's unique ID to their registered name. This allows the system to display the person's name instead of only showing their numeric ID during recognition.
+
 ---
 
 ## ✨ Features
@@ -23,11 +26,14 @@ The project uses **Haar Cascade** for face detection and **LBPH** for face recog
 * 📷 Real-time webcam face detection
 * 👤 Automatic face cropping
 * 🆔 Unique ID-based face registration
+* 🏷️ Person name registration
 * 💾 Automatic storage of face training images
 * 🧠 LBPH-based face recognition
 * 🎥 Real-time face recognition using webcam
 * 🟩 Face detection bounding boxes
 * 🏷️ Displays recognized person's name
+* ❓ Unknown face detection using recognition threshold
+* 📄 Automatic ID-to-name mapping using `names.json`
 * ⚡ Lightweight and suitable for beginners
 * 🐍 Completely implemented in Python
 
@@ -43,6 +49,7 @@ The project uses **Haar Cascade** for face detection and **LBPH** for face recog
 | **LBPH**         | Face recognition                       |
 | **NumPy**        | Image array processing                 |
 | **Pillow (PIL)** | Reading and converting training images |
+| **JSON**         | Storing person ID-to-name mappings     |
 
 ---
 
@@ -94,6 +101,17 @@ The complete system follows this pipeline:
                             │
                             ▼
                  ┌─────────────────────┐
+                 │    Predicted ID     │
+                 └──────────┬──────────┘
+                            │
+                            ▼
+                 ┌─────────────────────┐
+                 │     names.json      │
+                 │    ID → Name        │
+                 └──────────┬──────────┘
+                            │
+                            ▼
+                 ┌─────────────────────┐
                  │ Display Person Name │
                  └─────────────────────┘
 ```
@@ -105,9 +123,8 @@ The complete system follows this pipeline:
 ```text
 FaceRecognition/
 │
-├── detector.py
-├── trainer.py
-├── recognizer.py
+├── face_recognition.py
+├── haarcascade_frontalface_default.xml
 │
 ├── output/
 │   ├── user.1.1.jpg
@@ -119,11 +136,28 @@ FaceRecognition/
 ├── trained/
 │   └── training.yml
 │
-├── haarcascade/
-│   └── haarcascade_frontalface_default.xml
+├── names.json
 │
 └── README.md
 ```
+
+### Generated / Local Files
+
+The following files and folders are generated locally:
+
+```text
+output/
+trained/
+names.json
+__pycache__/
+```
+
+These are ignored by Git using `.gitignore`.
+
+* `output/` → Stores captured face images.
+* `trained/` → Stores the trained LBPH model.
+* `names.json` → Stores the mapping between Person ID and Person Name.
+* `__pycache__/` → Stores Python-generated cache files.
 
 ---
 
@@ -166,20 +200,47 @@ Here:
 * `1` → Person ID
 * `1, 2, 3...` → Image number
 
+During registration, the system also asks for the person's name.
+
+For example:
+
+```text
+Enter Person ID: 1
+Enter Person Name: Arpit
+```
+
+The ID and name are stored in `names.json`:
+
+```json
+{
+    "1": "Arpit"
+}
+```
+
 To register another person, assign a different ID.
 
 Example:
 
-```python
-id = 3
+```text
+Enter Person ID: 2
+Enter Person Name: Rahul
 ```
 
 The images will then be stored as:
 
 ```text
-user.3.1.jpg
-user.3.2.jpg
-user.3.3.jpg
+user.2.1.jpg
+user.2.2.jpg
+user.2.3.jpg
+```
+
+and `names.json` will contain:
+
+```json
+{
+    "1": "Arpit",
+    "2": "Rahul"
+}
 ```
 
 ---
@@ -218,6 +279,10 @@ LBPH Training
 training.yml
 ```
 
+The `training.yml` file stores the trained LBPH model.
+
+The person's name is stored separately in `names.json`.
+
 ---
 
 # 🔹 3. Real-Time Face Recognition
@@ -243,23 +308,42 @@ LBPH Prediction
      ↓
 Get ID
      ↓
-Map ID → Person Name
+Lookup ID in names.json
      ↓
 Display Name
 ```
 
-For example:
+For example, if LBPH predicts:
 
-```python
-if id == 1:
-    id = "anmol"
-elif id == 2:
-    id = "modi"
-else:
-    id = "obama"
+```text
+ID = 1
 ```
 
-The ID is mapped to the corresponding person's name.
+and `names.json` contains:
+
+```json
+{
+    "1": "Arpit"
+}
+```
+
+the system displays:
+
+```text
+Arpit
+```
+
+instead of:
+
+```text
+Person 1
+```
+
+If the predicted face does not meet the recognition threshold, the system displays:
+
+```text
+Unknown
+```
 
 ---
 
@@ -403,26 +487,61 @@ Using `r` before the path is recommended on Windows because it prevents problems
 
 # ▶️ How to Run
 
-The programs should be executed in this order.
+The program is contained in:
 
-## Step 1 — Collect Face Data
+```text
+face_recognition.py
+```
 
 Run:
 
 ```bash
-python detector.py
+python face_recognition.py
 ```
 
-Look into the `output` directory.
-
-You should see files such as:
+The program provides three options:
 
 ```text
-user.1.1.jpg
-user.1.2.jpg
-user.1.3.jpg
-...
+1. Add Person
+2. Train Model
+3. Recognize Person
 ```
+
+## Step 1 — Add Person
+
+Choose:
+
+```text
+1
+```
+
+Enter a numeric Person ID:
+
+```text
+Enter Person ID: 1
+```
+
+Enter the person's name:
+
+```text
+Enter Person Name: Arpit
+```
+
+The system stores the mapping in:
+
+```text
+names.json
+```
+
+For example:
+
+```json
+{
+    "1": "Arpit"
+}
+```
+
+The webcam will then open and capture face images.
 
 ---
 
@@ -431,7 +550,13 @@ user.1.3.jpg
 Run:
 
 ```bash
-python trainer.py
+python face_recognition.py
+```
+
+Choose:
+
+```text
+2
 ```
 
 After successful training:
@@ -450,10 +575,28 @@ will be created.
 Run:
 
 ```bash
-python recognizer.py
+python face_recognition.py
+```
+
+Choose:
+
+```text
+3
 ```
 
 The webcam will open and the system will attempt to recognize registered faces.
+
+If Person ID `1` belongs to `Arpit`, the system will display:
+
+```text
+Arpit
+```
+
+instead of:
+
+```text
+Person 1
+```
 
 Press:
 
@@ -470,19 +613,36 @@ to exit the webcam window.
 Suppose the existing IDs are:
 
 ```text
-1 → Anmol
-2 → Modi
+1 → Arpit
+2 → Rahul
 ```
 
 For a new person, assign:
 
-```python
-id = 3
+```text
+3 → Aman
 ```
 
-Run the face-data collection program again.
+Run:
 
-It will generate:
+```bash
+python face_recognition.py
+```
+
+Choose:
+
+```text
+1
+```
+
+Then enter:
+
+```text
+Enter Person ID: 3
+Enter Person Name: Aman
+```
+
+The system will generate:
 
 ```text
 user.3.1.jpg
@@ -491,28 +651,43 @@ user.3.3.jpg
 ...
 ```
 
+and update `names.json`:
+
+```json
+{
+    "1": "Arpit",
+    "2": "Rahul",
+    "3": "Aman"
+}
+```
+
 Then retrain the model:
 
 ```bash
-python trainer.py
+python face_recognition.py
+```
+
+Choose:
+
+```text
+2
 ```
 
 Finally run:
 
 ```bash
-python recognizer.py
+python face_recognition.py
 ```
 
-and add the corresponding name:
+Choose:
 
-```python
-if id == 1:
-    name = "Anmol"
-elif id == 2:
-    name = "Modi"
-elif id == 3:
-    name = "New Person"
+```text
+3
 ```
+
+The system will automatically display the registered name when the face is recognized.
+
+There is **no need to manually add `if id == ...` conditions in the code**.
 
 ---
 
@@ -544,7 +719,18 @@ Id = int(
 )
 ```
 
-Therefore, maintaining the correct filename format is important.
+The ID is then used to identify the corresponding person through `names.json`.
+
+For example:
+
+```json
+{
+    "1": "Arpit",
+    "2": "Rahul"
+}
+```
+
+Therefore, maintaining the correct filename format and ID mapping is important.
 
 ---
 
@@ -574,7 +760,8 @@ For example:
 id, confidence = recognizer.predict(face)
 
 if confidence < threshold:
-    print("Recognized")
+    name = names.get(str(id), f"Person {id}")
+    print(name)
 else:
     print("Unknown")
 ```
@@ -688,6 +875,7 @@ By building this project, you learn:
 * LBPH face recognition
 * Model training and persistence
 * Real-time prediction
+* ID-to-name mapping using JSON
 * Basic biometric-system concepts
 
 ---
@@ -696,6 +884,12 @@ By building this project, you learn:
 
 ```text
                  FACE REGISTRATION
+                        │
+                        ▼
+                 Enter Person ID
+                        │
+                        ▼
+                Enter Person Name
                         │
                         ▼
                  Open Webcam
@@ -734,6 +928,9 @@ By building this project, you learn:
                  Predicted ID
                        │
                        ▼
+                  names.json
+                       │
+                       ▼
                   Person Name
 ```
 
@@ -743,7 +940,7 @@ By building this project, you learn:
 
 > **Face Recognition System using Python & OpenCV**
 
-A real-time face recognition application that uses **Haar Cascade for face detection** and **LBPH for face recognition**. The system captures and stores face datasets, trains a recognition model, and performs real-time identity prediction through a webcam.
+A real-time face recognition application that uses **Haar Cascade for face detection** and **LBPH for face recognition**. The system captures and stores face datasets, trains a recognition model, and performs real-time identity prediction through a webcam while automatically mapping predicted IDs to registered names using `names.json`.
 
 ### Core Pipeline
 
@@ -755,6 +952,8 @@ Face Dataset Creation
 LBPH Model Training
       ↓
 Model Serialization
+      ↓
+ID → Name Mapping
       ↓
 Real-Time Recognition
 ```
@@ -797,5 +996,3 @@ Real-Time Recognition
 It motivates me to build more impactful open-source software.
 
 </div>
-Python • OpenCV • Haar Cascade • LBPH • Computer Vision
-
